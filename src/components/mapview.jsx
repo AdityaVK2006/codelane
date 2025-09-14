@@ -1,7 +1,7 @@
 'use client';
 
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import { useEffect } from 'react';
+import { useEffect, forwardRef, useImperativeHandle } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility';
@@ -191,22 +191,33 @@ const createCongestionIcon = (level, isSelected = false) => {
 };
 
 // Map controller component to handle focus changes
-function MapController({ selectedIntersection }) {
+function MapController({ selectedId, intersections, onInteraction }) {
   const map = useMap();
   
   useEffect(() => {
-    if (selectedIntersection && selectedIntersection.position) {
-      map.setView(selectedIntersection.position, 16, {
-        animate: true,
-        duration: 1
-      });
+    if (selectedId) {
+      const intersection = intersections.find(i => i.id === selectedId);
+      if (intersection && intersection.position) {
+        map.setView(intersection.position, 16, {
+          animate: true,
+          duration: 1
+        });
+      }
     }
-  }, [selectedIntersection, map]);
+  }, [selectedId, intersections, map]);
   
   return null;
 }
 
-export default function MapView({ intersections = [], selectedIntersection, onIntersectionClick }) {
+// MapView component with forwardRef to expose focus method
+const MapView = forwardRef(({ 
+  events = [], 
+  intersections = [], 
+  onInteraction, 
+  selectedId, 
+  hoverId,
+  isPublic = false 
+}, ref) => {
   // Coordinates for different cities
   const cityCoordinates = {
     Pune: [18.5204, 73.8567],
@@ -219,6 +230,21 @@ export default function MapView({ intersections = [], selectedIntersection, onIn
   const city = 'Pune';
   const mapCenter = cityCoordinates[city];
 
+  // Expose focusOnIntersection method to parent component
+  useImperativeHandle(ref, () => ({
+    focusOnIntersection: (intersection) => {
+      if (intersection && intersection.position) {
+        const map = window.map; // We'll set this globally in the MapContainer
+        if (map) {
+          map.setView(intersection.position, 16, {
+            animate: true,
+            duration: 1
+          });
+        }
+      }
+    }
+  }));
+
   return (
     <>
       <MapContainer 
@@ -226,8 +252,16 @@ export default function MapView({ intersections = [], selectedIntersection, onIn
         zoom={13} 
         scrollWheelZoom={true} 
         style={{ height: '100%', width: '100%' }}
+        whenCreated={(mapInstance) => {
+          // Store map instance globally for access by focus method
+          window.map = mapInstance;
+        }}
       >
-        <MapController selectedIntersection={selectedIntersection} />
+        <MapController 
+          selectedId={selectedId} 
+          intersections={intersections} 
+          onInteraction={onInteraction} 
+        />
         
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -235,19 +269,32 @@ export default function MapView({ intersections = [], selectedIntersection, onIn
         />
         
         {intersections.map((intersection) => {
-          const isSelected = selectedIntersection && selectedIntersection.id === intersection.id;
+          const isSelected = selectedId === intersection.id;
+          const isHovered = hoverId === intersection.id;
           
           return (
             <div key={intersection.id}>
               <Marker 
                 position={intersection.position}
-                icon={createTrafficLightIcon(intersection.light, isSelected, intersection.lightTimer)}
+                icon={createTrafficLightIcon(
+                  intersection.light, 
+                  isSelected || isHovered, 
+                  intersection.lightTimer
+                )}
                 eventHandlers={{
                   click: (e) => {
-                    if (onIntersectionClick) {
-                      // Get the mouse event from the original event
-                      const originalEvent = e.originalEvent;
-                      onIntersectionClick(intersection, originalEvent);
+                    if (onInteraction) {
+                      onInteraction(intersection.id, 'click');
+                    }
+                  },
+                  mouseover: () => {
+                    if (onInteraction) {
+                      onInteraction(intersection.id, 'hover');
+                    }
+                  },
+                  mouseout: () => {
+                    if (onInteraction) {
+                      onInteraction(null, 'hover');
                     }
                   }
                 }}
@@ -263,7 +310,7 @@ export default function MapView({ intersections = [], selectedIntersection, onIn
                       </p>
                       <p className="flex items-center">
                         <span className="w-3 h-3 rounded-full mr-2 bg-blue-500"></span>
-                        Time until change: {Math.floor(intersection.lightTimer / 60)}:{(intersection.lightTimer % 60).toString().padStart(2, '0')}
+                        Time until change: {intersection.lightTimer}s
                       </p>
                       <p className="flex items-center">
                         <span className="w-3 h-3 rounded-full mr-2 bg-blue-500"></span>
@@ -289,6 +336,20 @@ export default function MapView({ intersections = [], selectedIntersection, onIn
                         </p>
                       )}
                     </div>
+                    {!isPublic && (
+                      <div className="mt-3 pt-2 border-t border-gray-200">
+                        <button 
+                          className="w-full bg-blue-500 text-white py-1 px-2 rounded text-sm hover:bg-blue-600"
+                          onClick={() => {
+                            if (onInteraction) {
+                              onInteraction(intersection.id, 'control');
+                            }
+                          }}
+                        >
+                          Control Traffic Light
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </Popup>
               </Marker>
@@ -299,7 +360,7 @@ export default function MapView({ intersections = [], selectedIntersection, onIn
                     intersection.position[0] + 0.0005, 
                     intersection.position[1] + 0.0005
                   ]}
-                  icon={createPedestrianIcon(isSelected)}
+                  icon={createPedestrianIcon(isSelected || isHovered)}
                 >
                   <Popup>
                     <div className="p-2">
@@ -316,7 +377,7 @@ export default function MapView({ intersections = [], selectedIntersection, onIn
                   intersection.position[0] - 0.0005, 
                   intersection.position[1] - 0.0005
                 ]}
-                icon={createCongestionIcon(intersection.congestion, isSelected)}
+                icon={createCongestionIcon(intersection.congestion, isSelected || isHovered)}
               >
                 <Popup>
                   <div className="p-2">
@@ -326,6 +387,71 @@ export default function MapView({ intersections = [], selectedIntersection, onIn
                 </Popup>
               </Marker>
             </div>
+          );
+        })}
+
+        {/* Event markers */}
+        {events.filter(event => event.status !== 'resolved').map((event) => {
+          // Find the intersection that matches the event location
+          const relatedIntersection = intersections.find(intersection => 
+            event.location.includes(intersection.name)
+          );
+          
+          if (!relatedIntersection) return null;
+          
+          let eventColor;
+          switch(event.severity) {
+            case 'high': eventColor = '#ef4444'; break;
+            case 'medium': eventColor = '#eab308'; break;
+            default: eventColor = '#3b82f6';
+          }
+          
+          return (
+            <Marker
+              key={event.id}
+              position={[
+                relatedIntersection.position[0] + 0.001,
+                relatedIntersection.position[1] - 0.001
+              ]}
+              icon={L.divIcon({
+                html: `<div style="
+                  background-color: ${eventColor};
+                  width: 24px;
+                  height: 24px;
+                  border-radius: 50%;
+                  border: 2px solid white;
+                  box-shadow: 0 0 10px rgba(0,0,0,0.5), 0 0 15px ${eventColor};
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  color: white;
+                  font-weight: bold;
+                  font-size: 12px;
+                  cursor: pointer;
+                ">!</div>`,
+                className: 'event-marker',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12],
+              })}
+            >
+              <Popup>
+                <div className="p-2 min-w-[200px]">
+                  <h3 className="font-bold text-lg">{event.title}</h3>
+                  <p className="text-sm text-gray-600 mt-1">{event.location}</p>
+                  <p className="text-sm mt-2">{event.description}</p>
+                  <div className="flex justify-between items-center mt-3">
+                    <span className="text-xs text-gray-500">{event.time}</span>
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      event.severity === 'high' ? 'bg-red-100 text-red-800' :
+                      event.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-blue-100 text-blue-800'
+                    }`}>
+                      {event.severity}
+                    </span>
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
           );
         })}
       </MapContainer>
@@ -351,4 +477,8 @@ export default function MapView({ intersections = [], selectedIntersection, onIn
       `}</style>
     </>
   );
-}
+});
+
+MapView.displayName = 'MapView';
+
+export default MapView;
