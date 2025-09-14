@@ -336,20 +336,7 @@ const MapView = forwardRef(({
                         </p>
                       )}
                     </div>
-                    {!isPublic && (
-                      <div className="mt-3 pt-2 border-t border-gray-200">
-                        <button 
-                          className="w-full bg-blue-500 text-white py-1 px-2 rounded text-sm hover:bg-blue-600"
-                          onClick={() => {
-                            if (onInteraction) {
-                              onInteraction(intersection.id, 'control');
-                            }
-                          }}
-                        >
-                          Control Traffic Light
-                        </button>
-                      </div>
-                    )}
+                    
                   </div>
                 </Popup>
               </Marker>

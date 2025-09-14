@@ -72,7 +72,7 @@ const Page = () => {
       id: 2, 
       name: "FC Road", 
       light: "Red", 
-      pose: false, 
+      pose: true, 
       congestion: "High",
       vehicles: 42,
       waitingTime: "2m 15s",
@@ -102,7 +102,7 @@ const Page = () => {
       id: 4, 
       name: "SB Road", 
       light: "Green", 
-      pose: false, 
+      pose: true, 
       congestion: "Low",
       vehicles: 18,
       waitingTime: "45s",
@@ -132,7 +132,7 @@ const Page = () => {
       id: 6, 
       name: "DP Road", 
       light: "Green", 
-      pose: false, 
+      pose: true, 
       congestion: "Low",
       vehicles: 22,
       waitingTime: "40s",
@@ -162,7 +162,7 @@ const Page = () => {
       id: 8, 
       name: "Station Road", 
       light: "Red", 
-      pose: false, 
+      pose: true, 
       congestion: "Medium",
       vehicles: 30,
       waitingTime: "1m 15s",
@@ -235,19 +235,16 @@ const Page = () => {
     }
   };
 
-  // Function to select a search result
   const selectSearchResult = (intersection) => {
     setSearchQuery("");
     setShowSearchResults(false);
     focusOnIntersection(intersection);
-    
-    // If the intersection has control capabilities, open the modal directly
     if (intersection.pose) {
       openModal(intersection);
     }
   };
 
-  // Function to change traffic light
+
   const changeTrafficLight = (lightColor) => {
     if (selectedIntersection) {
       setIntersections(intersections.map(intersection => 
@@ -272,7 +269,7 @@ const Page = () => {
     }
   };
 
-  // Function to handle emergency override
+  
   const handleEmergencyOverride = () => {
     if (selectedIntersection) {
       setIntersections(intersections.map(intersection => 
@@ -281,7 +278,6 @@ const Page = () => {
           : intersection
       ));
       
-      // Add an emergency event
       const event = {
         id: events.length + 1,
         type: "emergery",
@@ -325,7 +321,6 @@ const Page = () => {
     ));
   };
 
-  // Function to open modal with selected intersection
   const openModal = (intersection) => {
     setSelectedIntersection(intersection);
     setManualTime(intersection.lightTimer);
@@ -333,7 +328,6 @@ const Page = () => {
     setOpen(true);
   };
 
-  // Function to handle map interaction
   const handleMapInteraction = (intersectionId, action) => {
     if (action === "click") {
       const intersection = intersections.find(i => i.id === intersectionId);
@@ -353,7 +347,6 @@ const Page = () => {
     }
   };
 
-  // Function to close map popup
   const closeMapPopup = () => {
     setMapDetails({
       ...mapDetails,
@@ -362,15 +355,13 @@ const Page = () => {
     });
   };
 
-  // Predefined password (in a real app, this would be securely stored and validated server-side)
-  const correctPassword = "CodeLane2024";
+  const correctPassword = "CodeLane";
 
   const handleLogin = (e) => {
     e.preventDefault();
     if (password === correctPassword) {
       setIsAuthenticated(true);
       setLoginError(false);
-      // Store authentication status in sessionStorage
       sessionStorage.setItem("auth", "true");
     } else {
       setLoginError(true);
@@ -398,7 +389,7 @@ const Page = () => {
         <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
           <div className="flex items-center gap-2 mb-8 justify-center">
             <div className="w-10 h-10 bg-green-500 rounded-lg"></div>
-            <h1 className="text-3xl font-bold text-gray-800">CodeLane</h1>
+            <h1 className="text-3xl font-bold text-gray-800">Niyantran AI</h1>
           </div>
           
           <h2 className="text-xl font-semibold text-gray-700 mb-2 text-center">
@@ -443,14 +434,13 @@ const Page = () => {
     );
   }
 
-  // If authenticated, show the original content
   return (
     <div className="h-screen w-screen bg-white flex p-4">
       {/* Sidebar */}
       <aside className="h-full flex-[0.2] p-4 bg-[#eef9e9] relative">
         <header className="flex items-center gap-2 mb-6">
           <div className="logo" aria-hidden="true"></div>
-          <h1 className="text-2xl font-semibold text-black">CodeLane</h1>
+          <h1 className="text-2xl font-semibold text-black">Niyantran AI</h1>
         </header>
 
         {/* Logout Button */}
