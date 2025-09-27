@@ -1,6 +1,6 @@
 "use client";
 import dynamic from "next/dynamic";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import "leaflet/dist/leaflet.css";
 
 // Dynamically import the MapView component with no SSR
@@ -20,160 +20,196 @@ const Page = () => {
   const [open, setOpen] = useState(false);
   const [selectedIntersection, setSelectedIntersection] = useState(null);
   const [manualTime, setManualTime] = useState(30);
+  
+  // Bhubaneswar specific events
   const [events, setEvents] = useState([
     {
       id: 1,
       type: "accident",
       title: "Vehicle Collision",
-      location: "MG Road & FC Road Intersection",
+      location: "Janpath Road & Master Canteen Square",
       severity: "high",
       time: "14:30",
       status: "active",
-      description: "Two-car collision blocking right lane"
+      description: "Two-car collision blocking right lane",
     },
     {
       id: 2,
       type: "construction",
       title: "Scheduled Road Work",
-      location: "JM Road (between SB Road and Karve Road)",
+      location: "Jaydev Vihar (between Rasulgarh and Vani Vihar)",
       severity: "medium",
       time: "09:00-16:00",
       status: "scheduled",
-      description: "Water pipe replacement, one lane closed"
+      description: "Water pipe replacement, one lane closed",
     },
     {
       id: 3,
       type: "emergency",
       title: "Ambulance Route",
-      location: "From Ruby Hospital to City General",
+      location: "From AMRI Hospital to Capital Hospital",
       severity: "high",
       time: "15:15",
       status: "active",
-      description: "Emergency vehicle en route - prioritize signals"
-    }
+      description: "Emergency vehicle en route - prioritize signals",
+    },
   ]);
+
+  // Bhubaneswar intersections with realistic coordinates
   const [intersections, setIntersections] = useState([
-    { 
-      id: 1, 
-      name: "MG Road", 
-      light: "Green", 
-      pose: true, 
-      congestion: "Low",
-      vehicles: 12,
-      waitingTime: "30s",
-      position: [18.5204, 73.8567],
+    {
+      id: 1,
+      name: "Master Canteen Square",
+      light: "Green",
+      pose: true,
+      congestion: "Medium",
+      vehicles: 25,
+      waitingTime: "45s",
+      position: [20.2961, 85.8245],
       lightTimer: 30,
       cameras: [
         { id: 1, name: "North View", url: "1192116-hd_1920_1080_30fps.mp4" },
-        { id: 2, name: "South View", url: "3727445-hd_1920_1080_30fps.mp4" }
+        { id: 2, name: "South View", url: "3727445-hd_1920_1080_30fps.mp4" },
       ]
     },
-    { 
-      id: 2, 
-      name: "FC Road", 
-      light: "Red", 
-      pose: true, 
+    {
+      id: 2,
+      name: "Vani Vihar Square",
+      light: "Red",
+      pose: false,
       congestion: "High",
-      vehicles: 42,
-      waitingTime: "2m 15s",
-      position: [18.5230, 73.8500],
+      vehicles: 48,
+      waitingTime: "2m 30s",
+      position: [20.2889, 85.8206],
       lightTimer: 15,
       cameras: [
         { id: 1, name: "East View", url: "3727445-hd_1920_1080_30fps.mp4" },
-        { id: 2, name: "West View", url: "1192116-hd_1920_1080_30fps.mp4" }
-      ]
+        { id: 2, name: "West View", url: "1192116-hd_1920_1080_30fps.mp4" },
+      ],
     },
-    { 
-      id: 3, 
-      name: "JM Road", 
-      light: "Yellow", 
-      pose: true, 
+    {
+      id: 3,
+      name: "Jaydev Vihar",
+      light: "Yellow",
+      pose: true,
       congestion: "Medium",
-      vehicles: 28,
-      waitingTime: "1m 10s",
-      position: [18.5170, 73.8600],
+      vehicles: 32,
+      waitingTime: "1m 15s",
+      position: [20.3015, 85.8068],
       lightTimer: 5,
       cameras: [
         { id: 1, name: "North View", url: "1192116-hd_1920_1080_30fps.mp4" },
-        { id: 2, name: "South View", url: "3727445-hd_1920_1080_30fps.mp4" }
-      ]
+        { id: 2, name: "South View", url: "3727445-hd_1920_1080_30fps.mp4" },
+      ],
     },
-    { 
-      id: 4, 
-      name: "SB Road", 
-      light: "Green", 
-      pose: true, 
+    {
+      id: 4,
+      name: "Rasulgarh Square",
+      light: "Green",
+      pose: false,
       congestion: "Low",
-      vehicles: 18,
-      waitingTime: "45s",
-      position: [18.5250, 73.8650],
+      vehicles: 15,
+      waitingTime: "35s",
+      position: [20.2813, 85.8317],
       lightTimer: 25,
       cameras: [
         { id: 1, name: "East View", url: "3727445-hd_1920_1080_30fps.mp4" },
-        { id: 2, name: "West View", url: "1192116-hd_1920_1080_30fps.mp4" }
-      ]
+        { id: 2, name: "West View", url: "1192116-hd_1920_1080_30fps.mp4" },
+      ],
     },
-    { 
-      id: 5, 
-      name: "Karve Road", 
-      light: "Red", 
-      pose: true, 
+    {
+      id: 5,
+      name: "Sachivalaya Marg",
+      light: "Red",
+      pose: true,
       congestion: "Medium",
-      vehicles: 35,
-      waitingTime: "1m 30s",
-      position: [18.5150, 73.8400],
+      vehicles: 28,
+      waitingTime: "1m 20s",
+      position: [20.2915, 85.8342],
       lightTimer: 20,
       cameras: [
         { id: 1, name: "North View", url: "1192116-hd_1920_1080_30fps.mp4" },
-        { id: 2, name: "South View", url: "3727445-hd_1920_1080_30fps.mp4" }
-      ]
+        { id: 2, name: "South View", url: "3727445-hd_1920_1080_30fps.mp4" },
+      ],
     },
-    { 
-      id: 6, 
-      name: "DP Road", 
-      light: "Green", 
-      pose: true, 
+    {
+      id: 6,
+      name: "Kalpana Square",
+      light: "Green",
+      pose: false,
       congestion: "Low",
-      vehicles: 22,
-      waitingTime: "40s",
-      position: [18.5100, 73.8550],
+      vehicles: 18,
+      waitingTime: "30s",
+      position: [20.2778, 85.8143],
       lightTimer: 35,
       cameras: [
         { id: 1, name: "East View", url: "3727445-hd_1920_1080_30fps.mp4" },
-        { id: 2, name: "West View", url: "1192116-hd_1920_1080_30fps.mp4" }
-      ]
+        { id: 2, name: "West View", url: "1192116-hd_1920_1080_30fps.mp4" },
+      ],
     },
-    { 
-      id: 7, 
-      name: "University Circle", 
-      light: "Yellow", 
-      pose: true, 
+    {
+      id: 7,
+      name: "Biju Patnaik Chhak",
+      light: "Yellow",
+      pose: true,
       congestion: "High",
-      vehicles: 48,
-      waitingTime: "2m 45s",
-      position: [18.5270, 73.8450],
+      vehicles: 52,
+      waitingTime: "3m 10s",
+      position: [20.2736, 85.8239],
       lightTimer: 10,
       cameras: [
         { id: 1, name: "North View", url: "1192116-hd_1920_1080_30fps.mp4" },
-        { id: 2, name: "South View", url: "3727445-hd_1920_1080_30fps.mp4" }
-      ]
+        { id: 2, name: "South View", url: "3727445-hd_1920_1080_30fps.mp4" },
+      ],
     },
-    { 
-      id: 8, 
-      name: "Station Road", 
-      light: "Red", 
-      pose: true, 
+    {
+      id: 8,
+      name: "Patia Square",
+      light: "Red",
+      pose: false,
       congestion: "Medium",
-      vehicles: 30,
-      waitingTime: "1m 15s",
-      position: [18.5190, 73.8750],
+      vehicles: 35,
+      waitingTime: "1m 45s",
+      position: [20.3124, 85.8173],
       lightTimer: 18,
       cameras: [
         { id: 1, name: "East View", url: "1192116-hd_1920_1080_30fps.mp4" },
-        { id: 2, name: "West View", url: "1192116-hd_1920_1080_30fps.mp4" }
-      ]
+        { id: 2, name: "West View", url: "1192116-hd_1920_1080_30fps.mp4" },
+      ],
     },
   ]);
+
+  // Add traffic simulation effect
+  useEffect(() => {
+    const simulateTraffic = () => {
+      setIntersections(prev => prev.map(intersection => {
+        // Random traffic fluctuations
+        const congestionChange = Math.random() * 10 - 5; // -5 to +5
+        let newVehicles = Math.max(5, Math.min(60, intersection.vehicles + congestionChange));
+        
+        // Update congestion level based on vehicle count
+        let newCongestion = "Low";
+        if (newVehicles > 40) newCongestion = "High";
+        else if (newVehicles > 20) newCongestion = "Medium";
+        
+        // Update waiting time based on congestion
+        let newWaitingTime = "30s";
+        if (newCongestion === "High") newWaitingTime = `${Math.floor(Math.random() * 3) + 2}m ${Math.floor(Math.random() * 60)}s`;
+        else if (newCongestion === "Medium") newWaitingTime = `${Math.floor(Math.random() * 2) + 1}m ${Math.floor(Math.random() * 60)}s`;
+        
+        return {
+          ...intersection,
+          vehicles: Math.round(newVehicles),
+          congestion: newCongestion,
+          waitingTime: newWaitingTime,
+          lightTimer: Math.max(5, intersection.lightTimer - 1) // Countdown timer
+        };
+      }));
+    };
+
+    const trafficInterval = setInterval(simulateTraffic, 5000); // Update every 5 seconds
+    return () => clearInterval(trafficInterval);
+  }, []);
   
   const [showEventForm, setShowEventForm] = useState(false);
   const [newEvent, setNewEvent] = useState({
