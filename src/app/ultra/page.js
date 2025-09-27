@@ -2,6 +2,7 @@
 import dynamic from "next/dynamic";
 import { useState, useEffect } from "react";
 import "leaflet/dist/leaflet.css";
+import UltraTrafficAlert from "@/components/UltraTrafficAlert";
 
 // Dynamically import the MapView component with no SSR
 const MapView = dynamic(() => import("@/components/mapview"), {
@@ -482,76 +483,149 @@ const Page = () => {
           </div>
         </section>
 
-        {/* Events/Incidents Section */}
+        {/* AI Traffic Alerts Section */}
         <section className="mt-10">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="font-semibold text-slate-500 text-sm pl-1">
-              Events & Incidents
-            </h2>
-            <button
-              onClick={() => setShowEventForm(true)}
-              className="text-xs bg-blue-500 text-white px-2 py-1 rounded"
-            >
-              + Add
-            </button>
-          </div>
-
+          <h2 className="font-semibold text-slate-500 mb-4 text-sm pl-1">
+            AI Traffic Alerts
+          </h2>
+          
           <div className="h-64 overflow-y-auto pr-2 scrollbar-hide">
-            {events.map((event) => (
-              <div
-                key={event.id}
-                className={`p-3 mb-2 rounded-lg text-sm ${
-                  event.status === "resolved"
-                    ? "bg-gray-100 text-gray-500"
-                    : event.severity === "high"
-                    ? "bg-red-100 text-red-800"
-                    : "bg-yellow-100 text-yellow-800"
-                }`}
-              >
-                <div className="flex justify-between">
-                  <span className="font-semibold">{event.title}</span>
-                  <span className="text-xs">{event.time}</span>
+            {intersections.map(intersection => {
+              // Generate alerts for this intersection
+              const generateAlerts = (intersection) => {
+                const alerts = [];
+                
+                if (intersection.congestion === 'High') {
+                  alerts.push({
+                    id: 'flow-prediction',
+                    type: 'prediction',
+                    severity: 'critical',
+                    title: 'Traffic Flow Prediction',
+                    message: `Predicted delay increase of 15-20 minutes`,
+                    icon: '📊',
+                    confidence: '85%',
+                    intersection: intersection.name
+                  });
+                }
+
+                if (intersection.lightTimer <= 10 && intersection.vehicles > 30) {
+                  alerts.push({
+                    id: 'signal-optimization',
+                    type: 'optimization',
+                    severity: 'high',
+                    title: 'Signal Optimization',
+                    message: `AI suggests extending green light by 15s`,
+                    icon: '',
+                    confidence: '92%',
+                    intersection: intersection.name
+                  });
+                }
+
+                if (intersection.pose && intersection.light === 'Green') {
+                  alerts.push({
+                    id: 'pedestrian-safety',
+                    type: 'safety',
+                    severity: 'high',
+                    title: 'Pedestrian Safety',
+                    message: `Pedestrian detected - extend crossing time`,
+                    icon: '🚶',
+                    confidence: '95%',
+                    intersection: intersection.name
+                  });
+                }
+
+                if (Math.random() > 0.7) {
+                  alerts.push({
+                    id: 'weather-impact',
+                    type: 'weather',
+                    severity: 'medium',
+                    title: 'Weather Impact',
+                    message: `Rain expected - traffic may slow by 25%`,
+                    icon: '🌧️',
+                    confidence: '78%',
+                    intersection: intersection.name
+                  });
+                }
+
+                return alerts;
+              };
+
+              const alerts = generateAlerts(intersection);
+              
+              return alerts.map(alert => (
+                <div 
+                  key={`${intersection.id}-${alert.id}`}
+                  className={`p-3 mb-2 rounded-lg text-sm border-l-4 ${
+                    alert.severity === 'critical' 
+                      ? 'bg-red-50 border-red-500 text-red-800' 
+                      : alert.severity === 'high'
+                      ? 'bg-orange-50 border-orange-500 text-orange-800'
+                      : 'bg-blue-50 border-blue-500 text-blue-800'
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-1">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-lg">{alert.icon}</span>
+                      <span className="font-semibold text-xs uppercase tracking-wide">
+                        {alert.type}
+                      </span>
+                    </div>
+                    <span className="text-xs bg-white/50 px-2 py-1 rounded-full">
+                      {alert.confidence}
+                    </span>
+                  </div>
+                  
+                  <div className="font-bold text-sm mb-1">
+                    {alert.title}
+                  </div>
+                  
+                  <div className="text-xs opacity-90 mb-2">
+                    {alert.message}
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-medium">
+                      📍 {alert.intersection}
+                    </span>
+                    <div className="flex space-x-1">
+                      <button className="text-xs bg-white/30 hover:bg-white/50 px-2 py-1 rounded transition-colors">
+                        View
+                      </button>
+                      <button className="text-xs bg-white/30 hover:bg-white/50 px-2 py-1 rounded transition-colors">
+                        Apply
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-xs mt-1">{event.location}</div>
-                <div className="text-xs mt-1">{event.description}</div>
-                <div className="flex justify-between items-center mt-2">
-                  <span className="text-xs capitalize">
-                    {event.type} • {event.severity}
+              ));
+            })}
+            
+            {/* Summary Stats */}
+            <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+              <div className="text-xs font-semibold text-blue-800 mb-2">AI Analysis Summary</div>
+              <div className="space-y-1 text-xs text-blue-700">
+                <div className="flex justify-between">
+                  <span>Active Alerts:</span>
+                  <span className="font-semibold">
+                    {intersections.reduce((total, intersection) => {
+                      const alerts = [];
+                      if (intersection.congestion === 'High') alerts.push('prediction');
+                      if (intersection.lightTimer <= 10 && intersection.vehicles > 30) alerts.push('optimization');
+                      if (intersection.pose && intersection.light === 'Green') alerts.push('safety');
+                      return total + alerts.length;
+                    }, 0)}
                   </span>
-                  {event.status !== "resolved" && (
-                    <button
-                      onClick={() => resolveEvent(event.id)}
-                      className="text-xs bg-green-500 text-white px-2 py-0.5 rounded"
-                    >
-                      Resolve
-                    </button>
-                  )}
+                </div>
+                <div className="flex justify-between">
+                  <span>Avg Confidence:</span>
+                  <span className="font-semibold">87%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>AI Recommendations:</span>
+                  <span className="font-semibold">12</span>
                 </div>
               </div>
-            ))}
-          </div>
-          <div className="absolute bottom-4 left-4">
-            <button
-              onClick={handleLogout}
-              className="flex items-center text-sm text-gray-500 hover:text-red-500 transition"
-              title="Logout"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 mr-1"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                />
-              </svg>
-              Logout
-            </button>
+            </div>
           </div>
         </section>
       </aside>

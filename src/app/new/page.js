@@ -2,6 +2,7 @@
 import dynamic from "next/dynamic";
 import { useState, useEffect } from "react";
 import "leaflet/dist/leaflet.css";
+import TrafficAlert from "@/components/TrafficAlert";
 
 // Dynamically import the MapView component with no SSR
 const MapView = dynamic(() => import("@/components/mapview"), {
@@ -700,8 +701,11 @@ const Page = () => {
         {intersections.map((intersection) => (
           <div
             key={intersection.id}
-            className="h-full aspect-video bg-white rounded"
+            className="h-full aspect-video bg-white rounded relative"
           >
+            {/* Traffic Alert Notification */}
+            <TrafficAlert intersection={intersection} />
+            
             <div className="p-4 flex flex-col h-full justify-between">
               <div>
                 <h2 className="text-lg font-semibold mb-2">

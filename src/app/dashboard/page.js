@@ -3,6 +3,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import TrafficAlert from "@/components/TrafficAlert";
 
 const MapView = dynamic(() => import("@/components/mapview"), {
   ssr: false,
@@ -489,7 +490,10 @@ const Page = () => {
               <div className="flex-1 overflow-x-scroll p-4">
                 <div className="flex space-x-4 pb-2">
                   {intersections.map((intersection) => (
-                    <div key={intersection.id} className="min-w-[220px] bg-gray-50 p-3 rounded-lg border border-gray-200 shadow-sm">
+                    <div key={intersection.id} className="min-w-[220px] bg-gray-50 p-3 rounded-lg border border-gray-200 shadow-sm relative">
+                      {/* Traffic Alert Notification */}
+                      <TrafficAlert intersection={intersection} />
+                      
                       <div className="flex justify-between overflow-x-auto items-start mb-2">
                         <h4 className="font-medium text-gray-800">📍 {intersection.name}</h4>
                         <span className={`text-xs font-semibold px-2 py-1 rounded ${getCongestionColor(intersection.congestion)}`}>
