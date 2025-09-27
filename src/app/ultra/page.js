@@ -689,6 +689,12 @@ const Page = () => {
                     {intersection.waitingTime}
                   </span>
                 </p>
+                <p className="text-sm text-gray-600 mb-1">
+                  Forcast:{" "}
+                  <span className="font-semibold">
+                    xyz
+                  </span>
+                </p>
               </div>
               <div className="flex items-center justify-between">
                 <p className="text-sm text-gray-600">
