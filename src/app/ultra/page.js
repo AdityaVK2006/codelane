@@ -252,6 +252,7 @@ const Page = () => {
   const [greenCorridor, setGreenCorridor] = useState({
     startIntersection: null,
     endIntersection: null,
+    type: "emergency",
     isActive: false,
   });
 
@@ -478,7 +479,7 @@ const Page = () => {
         </header>
 
         <section className="mt-10">
-          <h2 className="font-semibold text-slate-500 mb-4 text-sm pl-1">
+          <h2 className="font-semibold text-slate-600 mb-4 text-lg pl-1">
             Current Status
           </h2>
           <div className="flex flex-col text-slate-600">
@@ -1273,6 +1274,27 @@ const Page = () => {
                 </select>
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Corridor Type
+                </label>
+                <select
+                  value={greenCorridor.type}
+                  onChange={(e) =>
+                    setGreenCorridor((prev) => ({
+                      ...prev,
+                      type: e.target.value,
+                    }))
+                  }
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                >
+                  <option value="emergency">Emergency Vehicle</option>
+                  <option value="vip">VIP Movement</option>
+                  <option value="public_transport">Public Transport Priority</option>
+                  <option value="special_event">Special Event</option>
+                </select>
+              </div>
+
               {greenCorridor.startIntersection &&
                 greenCorridor.endIntersection && (
                   <div className="bg-green-50 border border-green-200 rounded-lg p-4">
@@ -1283,6 +1305,9 @@ const Page = () => {
                       <strong>Route:</strong>{" "}
                       {greenCorridor.startIntersection.name} →{" "}
                       {greenCorridor.endIntersection.name}
+                    </p>
+                    <p className="text-sm text-green-700 mt-1">
+                      <strong>Type:</strong> {greenCorridor.type.replace('_', ' ')}
                     </p>
                     <p className="text-sm text-green-700 mt-1">
                       <strong>Estimated Duration:</strong> 3-5 minutes
@@ -1309,6 +1334,19 @@ const Page = () => {
                     ) {
                       setGreenCorridor((prev) => ({ ...prev, isActive: true }));
                       setShowGreenCorridorModal(false);
+                      
+                      // Show confirmation notification
+                      setActiveGreenCorridor({
+                        start: greenCorridor.startIntersection.name,
+                        end: greenCorridor.endIntersection.name,
+                        type: greenCorridor.type
+                      });
+                      setShowCorridorConfirmation(true);
+                      
+                      // Auto hide notification after 5 seconds
+                      setTimeout(() => {
+                        setShowCorridorConfirmation(false);
+                      }, 5000);
 
                       // Add event for green corridor creation
                       const event = {
@@ -1322,7 +1360,7 @@ const Page = () => {
                           minute: "2-digit",
                         }),
                         status: "active",
-                        description: `Green corridor established between ${greenCorridor.startIntersection.name} and ${greenCorridor.endIntersection.name}. Traffic lights synchronized for optimal flow.`,
+                        description: `${greenCorridor.type.replace('_', ' ')} green corridor established between ${greenCorridor.startIntersection.name} and ${greenCorridor.endIntersection.name}. Traffic lights synchronized for optimal flow.`,
                       };
                       setEvents([event, ...events]);
                     }
@@ -1340,6 +1378,7 @@ const Page = () => {
           </div>
         </div>
       )}
+
       {/* Green Corridor Confirmation Notification */}
       {showCorridorConfirmation && activeGreenCorridor && (
         <div className="fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-[10002] max-w-sm">
@@ -1365,8 +1404,11 @@ const Page = () => {
               <p className="mt-1">
                 Route: <strong>{activeGreenCorridor.start}</strong> to <strong>{activeGreenCorridor.end}</strong>
               </p>
+              <p className="text-sm mt-1">
+                Type: <strong>{activeGreenCorridor.type.replace('_', ' ')}</strong>
+              </p>
               <p className="text-sm mt-1 opacity-90">
-                Emergency vehicle priority route established. Traffic signals will be optimized for this corridor.
+                Traffic signals will be optimized for this corridor.
               </p>
             </div>
           </div>
