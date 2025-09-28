@@ -73,8 +73,8 @@ const Page = () => {
       position: [20.2961, 85.8245],
       lightTimer: 30,
       cameras: [
-        { id: 1, name: "North View", url: "1192116-hd_1920_1080_30fps.mp4" },
-        { id: 2, name: "South View", url: "3727445-hd_1920_1080_30fps.mp4" },
+        { id: 1, name: "North View", url: "WhatsApp Video 2025-09-28 at 17.22.16_75a48a5d.mp4" },
+        { id: 2, name: "South View", url: "WhatsApp Video 2025-09-28 at 17.20.53_ff1d9794.mp4" },
       ],
     },
     {
