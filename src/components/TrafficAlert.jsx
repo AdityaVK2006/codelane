@@ -39,7 +39,7 @@ const TrafficAlert = ({ intersection, alerts = [] }) => {
     }
 
     // Vehicle count alert
-    if (intersection.vehicles > 40) {
+    if (intersection.vehicles > 25) {
       alerts.push({
         id: 'vehicle-overload',
         type: 'vehicles',
@@ -52,8 +52,47 @@ const TrafficAlert = ({ intersection, alerts = [] }) => {
       });
     }
 
+    // Accident alert (dummy)
+    if (Math.random() > 0.1) {
+      const accidentTypes = [
+        {
+          id: 'accident-collision',
+          type: 'accident',
+          severity: 'critical',
+          title: 'Vehicle Collision Detected',
+          message: `Two-vehicle accident reported at ${intersection.name}. Emergency services dispatched.`,
+          icon: '🚨',
+          color: 'red'
+        },
+        {
+          id: 'accident-breakdown',
+          type: 'accident',
+          severity: 'high',
+          title: 'Vehicle Breakdown',
+          message: `Disabled vehicle blocking lane at ${intersection.name}. Tow truck requested.`,
+          icon: '🚗',
+          color: 'orange'
+        },
+        {
+          id: 'accident-roadwork',
+          type: 'accident',
+          severity: 'medium',
+          title: 'Road Work Incident',
+          message: `Construction equipment malfunction at ${intersection.name}. Traffic diverted.`,
+          icon: '🚧',
+          color: 'yellow'
+        }
+      ];
+      
+      const randomAccident = accidentTypes[Math.floor(Math.random() * accidentTypes.length)];
+      alerts.push({
+        ...randomAccident,
+        timestamp: new Date().toLocaleTimeString()
+      });
+    }
+
     // Emergency alert (dummy)
-    if (Math.random() > 0.8) {
+    if (Math.random() > 0.3) {
       alerts.push({
         id: 'emergency',
         type: 'emergency',
@@ -66,19 +105,65 @@ const TrafficAlert = ({ intersection, alerts = [] }) => {
       });
     }
 
+    // Weather alert (dummy)
+    if (Math.random() > 0.4) {
+      const weatherTypes = [
+        {
+          id: 'weather-rain',
+          type: 'weather',
+          severity: 'medium',
+          title: 'Heavy Rain Detected',
+          message: `Rain affecting visibility at ${intersection.name}. Reduce speed limits.`,
+          icon: '🌧️',
+          color: 'blue'
+        },
+        {
+          id: 'weather-fog',
+          type: 'weather',
+          severity: 'high',
+          title: 'Fog Alert',
+          message: `Dense fog reducing visibility at ${intersection.name}. Use caution.`,
+          icon: '🌫️',
+          color: 'gray'
+        },
+        {
+          id: 'weather-storm',
+          type: 'weather',
+          severity: 'critical',
+          title: 'Severe Weather Warning',
+          message: `Storm approaching ${intersection.name}. Consider traffic diversion.`,
+          icon: '⛈️',
+          color: 'purple'
+        }
+      ];
+      
+      const randomWeather = weatherTypes[Math.floor(Math.random() * weatherTypes.length)];
+      alerts.push({
+        ...randomWeather,
+        timestamp: new Date().toLocaleTimeString()
+      });
+    }
+
     return alerts;
   };
 
   useEffect(() => {
     const intersectionAlerts = generateDummyAlerts(intersection);
     if (intersectionAlerts.length > 0) {
-      setCurrentAlert(intersectionAlerts[0]);
+      // Sort alerts by priority (critical first, then high, medium, low)
+      const priorityOrder = { 'critical': 1, 'high': 2, 'medium': 3, 'low': 4 };
+      const sortedAlerts = intersectionAlerts.sort((a, b) => 
+        priorityOrder[a.severity] - priorityOrder[b.severity]
+      );
+      
+      setCurrentAlert(sortedAlerts[0]);
       setIsVisible(true);
       
-      // Auto-hide alert after 5 seconds
+      // Auto-hide alert after 5 seconds (longer for critical alerts)
+      const hideDelay = sortedAlerts[0].severity === 'critical' ? 8000 : 5000;
       const timer = setTimeout(() => {
         setIsVisible(false);
-      }, 5000);
+      }, hideDelay);
 
       return () => clearTimeout(timer);
     }
@@ -87,17 +172,28 @@ const TrafficAlert = ({ intersection, alerts = [] }) => {
   if (!isVisible || !currentAlert) return null;
 
   const getAlertStyles = (severity, color) => {
-    const baseStyles = "absolute top-2 right-2 z-10 px-3 py-2 rounded-lg shadow-lg border-l-4 animate-pulse";
+    const baseStyles = "absolute top-2 right-2 z-10 px-3 py-2 rounded-lg shadow-lg border-l-4";
+    const animationClass = severity === 'critical' ? 'animate-bounce' : 'animate-pulse';
+    
+    // Handle special colors for weather alerts
+    if (color === 'purple') {
+      return `${baseStyles} ${animationClass} bg-purple-100 border-purple-600 text-purple-900 shadow-purple-200`;
+    }
+    if (color === 'gray') {
+      return `${baseStyles} ${animationClass} bg-gray-100 border-gray-600 text-gray-900 shadow-gray-200`;
+    }
     
     switch (severity) {
+      case 'critical':
+        return `${baseStyles} ${animationClass} bg-red-100 border-red-600 text-red-900 shadow-red-200`;
       case 'high':
-        return `${baseStyles} bg-red-50 border-red-500 text-red-800`;
+        return `${baseStyles} ${animationClass} bg-red-50 border-red-500 text-red-800`;
       case 'medium':
-        return `${baseStyles} bg-yellow-50 border-yellow-500 text-yellow-800`;
+        return `${baseStyles} ${animationClass} bg-yellow-50 border-yellow-500 text-yellow-800`;
       case 'low':
-        return `${baseStyles} bg-blue-50 border-blue-500 text-blue-800`;
+        return `${baseStyles} ${animationClass} bg-blue-50 border-blue-500 text-blue-800`;
       default:
-        return `${baseStyles} bg-gray-50 border-gray-500 text-gray-800`;
+        return `${baseStyles} ${animationClass} bg-gray-50 border-gray-500 text-gray-800`;
     }
   };
 

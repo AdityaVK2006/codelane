@@ -3,6 +3,7 @@ import dynamic from "next/dynamic";
 import { useState, useEffect } from "react";
 import "leaflet/dist/leaflet.css";
 import UltraTrafficAlert from "@/components/UltraTrafficAlert";
+import Image from "next/image";
 
 // Dynamically import the MapView component with no SSR
 const MapView = dynamic(() => import("@/components/mapview"), {
@@ -22,6 +23,13 @@ const Page = () => {
   const [selectedIntersection, setSelectedIntersection] = useState(null);
   const [manualTime, setManualTime] = useState(30);
   
+  // Green Corridor states
+  const [showGreenCorridorModal, setShowGreenCorridorModal] = useState(false);
+  const [greenCorridorStart, setGreenCorridorStart] = useState("");
+  const [greenCorridorEnd, setGreenCorridorEnd] = useState("");
+  const [showCorridorConfirmation, setShowCorridorConfirmation] = useState(false);
+  const [activeGreenCorridor, setActiveGreenCorridor] = useState(null);
+
   // Bhubaneswar specific events
   const [events, setEvents] = useState([
     {
@@ -231,6 +239,75 @@ const Page = () => {
 
   // State for active camera view
   const [activeCamera, setActiveCamera] = useState(0);
+
+  // Function to handle Green Corridor creation
+  const handleCreateGreenCorridor = () => {
+    if (greenCorridorStart && greenCorridorEnd && greenCorridorStart !== greenCorridorEnd) {
+      const startIntersection = intersections.find(i => i.id === parseInt(greenCorridorStart));
+      const endIntersection = intersections.find(i => i.id === parseInt(greenCorridorEnd));
+      
+      if (startIntersection && endIntersection) {
+        // Create a green corridor object
+        const corridor = {
+          id: Date.now(),
+          start: startIntersection.name,
+          end: endIntersection.name,
+          startId: startIntersection.id,
+          endId: endIntersection.id,
+          timestamp: new Date().toLocaleTimeString(),
+        };
+        
+        setActiveGreenCorridor(corridor);
+        
+        // Add an event for the green corridor
+        const event = {
+          id: events.length + 1,
+          type: "emergency",
+          title: "Green Corridor Activated",
+          location: `${startIntersection.name} to ${endIntersection.name}`,
+          severity: "high",
+          time: corridor.timestamp,
+          status: "active",
+          description: "Emergency green corridor established for priority vehicle",
+        };
+
+        setEvents([event, ...events]);
+        
+        // Show confirmation
+        setShowCorridorConfirmation(true);
+        setShowGreenCorridorModal(false);
+        
+        // Reset form
+        setGreenCorridorStart("");
+        setGreenCorridorEnd("");
+        
+        // Auto-hide confirmation after 5 seconds
+        setTimeout(() => {
+          setShowCorridorConfirmation(false);
+        }, 5000);
+      }
+    }
+  };
+
+  // Function to deactivate Green Corridor
+  const handleDeactivateGreenCorridor = () => {
+    if (activeGreenCorridor) {
+      // Add closure event
+      const event = {
+        id: events.length + 1,
+        type: "control",
+        title: "Green Corridor Deactivated",
+        location: `${activeGreenCorridor.start} to ${activeGreenCorridor.end}`,
+        severity: "low",
+        time: new Date().toLocaleTimeString(),
+        status: "resolved",
+        description: "Green corridor has been deactivated",
+      };
+
+      setEvents([event, ...events]);
+      setActiveGreenCorridor(null);
+    }
+  };
 
   // Function to change traffic light
   const changeTrafficLight = (lightColor) => {
@@ -445,12 +522,13 @@ const Page = () => {
   }
 
   return (
-    <div className="h-screen w-screen bg-white flex p-4">
+    <div className="h-screen w-screen bg-white flex overflow-hidden">
       {/* Sidebar */}
       <aside className="h-full flex-[0.2] p-4 bg-[#eef9e9]">
         <header className="flex items-center gap-2 mb-6">
-          <div className="logo" aria-hidden="true"></div>
-          <h1 className="text-2xl font-semibold text-black">CodeLane</h1>
+          <div className="logo" aria-hidden="true">
+            <Image src="/logo.png" alt="CodeLane" width={150} height={20} />
+          </div>
         </header>
 
         <section className="mt-10">
@@ -480,7 +558,49 @@ const Page = () => {
               Roadworks :{" "}
               {events.filter((e) => e.type === "construction").length}
             </h1>
+            
+            {/* Green Corridor Status */}
+            <h1 className={`py-2 px-1 rounded-lg ${
+              activeGreenCorridor 
+                ? "bg-green-100 text-green-600 font-semibold" 
+                : "hover:bg-green-100 hover:text-green-500"
+            }`}>
+              Green Corridor : {activeGreenCorridor ? "Active" : "Inactive"}
+            </h1>
           </div>
+        </section>
+
+        {/* Green Corridor Button */}
+        <section className="mt-6">
+          <button
+            onClick={() => setShowGreenCorridorModal(true)}
+            className="w-full py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-semibold flex items-center justify-center"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5 mr-2"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 10V3L4 14h7v7l9-11h-7z"
+              />
+            </svg>
+            Create Green Corridor
+          </button>
+          
+          {activeGreenCorridor && (
+            <button
+              onClick={handleDeactivateGreenCorridor}
+              className="w-full mt-2 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-semibold text-sm"
+            >
+              Deactivate Corridor
+            </button>
+          )}
         </section>
 
         {/* AI Traffic Alerts Section */}
@@ -794,18 +914,77 @@ const Page = () => {
         ))}
       </div>
 
-      {/* Full-Screen Intersection Modal with Traffic Videos */}
-      {open && selectedIntersection && (
-        <div className="fixed inset-0 bg-white z-[10000] flex flex-col">
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b">
-            <h2 className="text-2xl font-bold">
-              {selectedIntersection.name} - Traffic Control
-            </h2>
-            <button
-              onClick={() => setOpen(false)}
-              className="p-2 rounded-full hover:bg-gray-100"
-            >
+      {/* Green Corridor Modal */}
+      {showGreenCorridorModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10001]">
+          <div className="bg-white p-6 rounded-lg w-96">
+            <h2 className="text-xl font-semibold mb-4">Create Green Corridor</h2>
+            <p className="text-gray-600 mb-4">Select start and end intersections for emergency vehicle priority route.</p>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">Start Intersection</label>
+              <select
+                value={greenCorridorStart}
+                onChange={(e) => setGreenCorridorStart(e.target.value)}
+                className="w-full p-2 border rounded"
+              >
+                <option value="">Select start point</option>
+                {intersections.map(intersection => (
+                  <option key={intersection.id} value={intersection.id}>
+                    {intersection.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="mb-6">
+              <label className="block text-sm font-medium mb-2">End Intersection</label>
+              <select
+                value={greenCorridorEnd}
+                onChange={(e) => setGreenCorridorEnd(e.target.value)}
+                className="w-full p-2 border rounded"
+              >
+                <option value="">Select end point</option>
+                {intersections.map(intersection => (
+                  <option key={intersection.id} value={intersection.id}>
+                    {intersection.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowGreenCorridorModal(false);
+                  setGreenCorridorStart("");
+                  setGreenCorridorEnd("");
+                }}
+                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateGreenCorridor}
+                disabled={!greenCorridorStart || !greenCorridorEnd || greenCorridorStart === greenCorridorEnd}
+                className={`px-4 py-2 rounded transition ${
+                  !greenCorridorStart || !greenCorridorEnd || greenCorridorStart === greenCorridorEnd
+                    ? "bg-gray-400 text-gray-200 cursor-not-allowed"
+                    : "bg-green-500 text-white hover:bg-green-600"
+                }`}
+              >
+                Create Corridor
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Green Corridor Confirmation Notification */}
+      {showCorridorConfirmation && activeGreenCorridor && (
+        <div className="fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-[10002] max-w-sm">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-6 w-6"
@@ -817,334 +996,213 @@ const Page = () => {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-            </button>
-          </div>
-
-          {/* Main Content */}
-          <div className="flex flex-1 overflow-hidden">
-            {/* Left Panel - Traffic Videos */}
-            <div className="w-2/3 flex flex-col p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Traffic Cameras</h3>
-                <div className="flex space-x-2">
-                  {selectedIntersection.cameras.map((camera, index) => (
-                    <button
-                      key={camera.id}
-                      onClick={() => setActiveCamera(index)}
-                      className={`px-3 py-1 rounded text-sm ${
-                        activeCamera === index
-                          ? "bg-blue-500 text-white"
-                          : "bg-gray-200 text-gray-700"
-                      }`}
-                    >
-                      {camera.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex-1 bg-black rounded-lg overflow-hidden">
-                {selectedIntersection.cameras.length > 0 && (
-                  <video
-                    key={selectedIntersection.cameras[activeCamera].id}
-                    src={`/${selectedIntersection.cameras[activeCamera].url}`}
-                    className="w-full h-full object-cover"
-                    autoPlay
-                    loop
-                    muted
-                  />
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                {selectedIntersection.cameras.map((camera, index) => (
-                  <div
-                    key={camera.id}
-                    className={`h-32 bg-gray-800 rounded overflow-hidden cursor-pointer ${
-                      activeCamera === index ? "ring-2 ring-blue-500" : ""
-                    }`}
-                    onClick={() => setActiveCamera(index)}
-                  >
-                    <div className="h-full w-full bg-gray-700 flex items-center justify-center text-white text-sm">
-                      {camera.name} Live Feed
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
-
-            {/* Right Panel - Controls and Information */}
-            <div className="w-1/3 border-l p-6 overflow-y-auto scrollbar-hide">
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-3">
-                  Intersection Information
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gray-50 p-3 rounded">
-                    <p className="text-sm text-gray-600">Traffic Light</p>
-                    <p
-                      className={
-                        selectedIntersection.light === "Green"
-                          ? "text-green-500 font-semibold text-lg"
-                          : selectedIntersection.light === "Red"
-                          ? "text-red-500 font-semibold text-lg"
-                          : "text-yellow-500 font-semibold text-lg"
-                      }
-                    >
-                      {selectedIntersection.light}
-                    </p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded">
-                    <p className="text-sm text-gray-600">Timer</p>
-                    <p className="font-semibold text-lg">
-                      {selectedIntersection.lightTimer}s
-                    </p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded">
-                    <p className="text-sm text-gray-600">Congestion</p>
-                    <p
-                      className={
-                        selectedIntersection.congestion === "Low"
-                          ? "text-green-500 font-semibold text-lg"
-                          : selectedIntersection.congestion === "Medium"
-                          ? "text-yellow-500 font-semibold text-lg"
-                          : "text-red-500 font-semibold text-lg"
-                      }
-                    >
-                      {selectedIntersection.congestion}
-                    </p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded">
-                    <p className="text-sm text-gray-600">Vehicles</p>
-                    <p className="font-semibold text-lg">
-                      {selectedIntersection.vehicles}
-                    </p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded col-span-2">
-                    <p className="text-sm text-gray-600">
-                      Average Waiting Time
-                    </p>
-                    <p className="font-semibold text-lg">
-                      {selectedIntersection.waitingTime}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-3">
-                  Traffic Light Control
-                </h3>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-2">
-                    Set Light Duration (seconds)
-                  </label>
-                  <div className="flex items-center">
-                    <input
-                      type="range"
-                      min="5"
-                      max="60"
-                      step="5"
-                      value={manualTime}
-                      onChange={(e) => setManualTime(parseInt(e.target.value))}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                    />
-                    <span className="ml-3 font-semibold w-10">
-                      {manualTime}s
-                    </span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3 mb-4">
-                  <button
-                    onClick={() => changeTrafficLight("Green")}
-                    className="py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex flex-col items-center justify-center"
-                  >
-                    <div className="w-6 h-6 rounded-full bg-white mb-1"></div>
-                    <span>Green</span>
-                  </button>
-                  <button
-                    onClick={() => changeTrafficLight("Yellow")}
-                    className="py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition flex flex-col items-center justify-center"
-                  >
-                    <div className="w-6 h-6 rounded-full bg-white mb-1"></div>
-                    <span>Yellow</span>
-                  </button>
-                  <button
-                    onClick={() => changeTrafficLight("Red")}
-                    className="py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition flex flex-col items-center justify-center"
-                  >
-                    <div className="w-6 h-6 rounded-full bg-white mb-1"></div>
-                    <span>Red</span>
-                  </button>
-                </div>
-
-                <button
-                  onClick={handleEmergencyOverride}
-                  className="w-full py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold flex items-center justify-center mb-2"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 mr-2"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
-                  Emergency Override
-                </button>
-                <p className="text-xs text-gray-500 text-center">
-                  Sets green light for 60 seconds
-                </p>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-semibold mb-3">Recent Events</h3>
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {events
-                    .filter((event) =>
-                      event.location.includes(selectedIntersection.name)
-                    )
-                    .slice(0, 3)
-                    .map((event) => (
-                      <div
-                        key={event.id}
-                        className="bg-gray-50 p-2 rounded text-sm"
-                      >
-                        <div className="flex justify-between">
-                          <span className="font-medium">{event.title}</span>
-                          <span className="text-gray-500">{event.time}</span>
-                        </div>
-                        <p className="text-gray-600 truncate">
-                          {event.description}
-                        </p>
-                      </div>
-                    ))}
-                </div>
-              </div>
+            <div className="ml-3">
+              <h3 className="text-lg font-semibold">Green Corridor Activated</h3>
+              <p className="mt-1">
+                Route: <strong>{activeGreenCorridor.start}</strong> to <strong>{activeGreenCorridor.end}</strong>
+              </p>
+              <p className="text-sm mt-1 opacity-90">
+                Emergency vehicle priority route established. Traffic signals will be optimized for this corridor.
+              </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Add Event Form Modal */}
+      {/* Modal for traffic light control */}
+      {open && selectedIntersection && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000]">
+          <div className="bg-white p-6 rounded-lg w-96">
+            <h2 className="text-xl font-semibold mb-4">
+              Control Traffic Light - {selectedIntersection.name}
+            </h2>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">
+                Current Light:{" "}
+                <span
+                  className={
+                    selectedIntersection.light === "Green"
+                      ? "text-green-500 font-semibold"
+                      : selectedIntersection.light === "Red"
+                      ? "text-red-500 font-semibold"
+                      : "text-yellow-500 font-semibold"
+                  }
+                >
+                  {selectedIntersection.light}
+                </span>
+              </label>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">
+                Set Light Duration (seconds)
+              </label>
+              <input
+                type="number"
+                min="5"
+                max="120"
+                value={manualTime}
+                onChange={(e) => setManualTime(parseInt(e.target.value))}
+                className="w-full p-2 border rounded"
+              />
+            </div>
+
+            <div className="flex justify-between mb-4">
+              <button
+                onClick={() => changeTrafficLight("Green")}
+                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition"
+              >
+                Set Green
+              </button>
+              <button
+                onClick={() => changeTrafficLight("Yellow")}
+                className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition"
+              >
+                Set Yellow
+              </button>
+              <button
+                onClick={() => changeTrafficLight("Red")}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"
+              >
+                Set Red
+              </button>
+            </div>
+
+            <button
+              onClick={handleEmergencyOverride}
+              className="w-full py-2 bg-orange-500 text-white rounded hover:bg-orange-600 transition font-semibold mb-2"
+            >
+              Emergency Override (Set Green for 60s)
+            </button>
+
+            <button
+              onClick={() => setOpen(false)}
+              className="w-full py-2 bg-gray-300 rounded hover:bg-gray-400 transition"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Event Form Modal */}
       {showEventForm && (
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg z-[9999] w-96 shadow-xl">
-          <h2 className="text-xl font-semibold mb-4">Add New Event/Incident</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000]">
+          <div className="bg-white p-6 rounded-lg w-96">
+            <h2 className="text-xl font-semibold mb-4">Add Traffic Event</h2>
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Type</label>
-            <select
-              value={newEvent.type}
-              onChange={(e) =>
-                setNewEvent({ ...newEvent, type: e.target.value })
-              }
-              className="w-full p-2 border rounded"
-            >
-              <option value="accident">Accident</option>
-              <option value="construction">Construction/Roadwork</option>
-              <option value="emergency">Emergency</option>
-              <option value="closure">Road Closure</option>
-            </select>
-          </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Event Type
+                </label>
+                <select
+                  value={newEvent.type}
+                  onChange={(e) =>
+                    setNewEvent({ ...newEvent, type: e.target.value })
+                  }
+                  className="w-full p-2 border rounded"
+                >
+                  <option value="construction">Road Construction</option>
+                  <option value="accident">Accident</option>
+                  <option value="emergency">Emergency Route</option>
+                  <option value="event">Special Event</option>
+                </select>
+              </div>
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Title</label>
-            <input
-              type="text"
-              value={newEvent.title}
-              onChange={(e) =>
-                setNewEvent({ ...newEvent, title: e.target.value })
-              }
-              className="w-full p-2 border rounded"
-              placeholder="Brief description"
-            />
-          </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Title</label>
+                <input
+                  type="text"
+                  value={newEvent.title}
+                  onChange={(e) =>
+                    setNewEvent({ ...newEvent, title: e.target.value })
+                  }
+                  className="w-full p-2 border rounded"
+                  placeholder="Enter event title"
+                />
+              </div>
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Location</label>
-            <input
-              type="text"
-              value={newEvent.location}
-              onChange={(e) =>
-                setNewEvent({ ...newEvent, location: e.target.value })
-              }
-              className="w-full p-2 border rounded"
-              placeholder="Where is this happening?"
-            />
-          </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Location
+                </label>
+                <input
+                  type="text"
+                  value={newEvent.location}
+                  onChange={(e) =>
+                    setNewEvent({ ...newEvent, location: e.target.value })
+                  }
+                  className="w-full p-2 border rounded"
+                  placeholder="Enter location"
+                />
+              </div>
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Severity</label>
-            <select
-              value={newEvent.severity}
-              onChange={(e) =>
-                setNewEvent({ ...newEvent, severity: e.target.value })
-              }
-              className="w-full p-2 border rounded"
-            >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
-          </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Severity
+                </label>
+                <select
+                  value={newEvent.severity}
+                  onChange={(e) =>
+                    setNewEvent({ ...newEvent, severity: e.target.value })
+                  }
+                  className="w-full p-2 border rounded"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">
-              {newEvent.type === "construction" ? "Schedule" : "Time"}
-            </label>
-            <input
-              type="text"
-              value={newEvent.time}
-              onChange={(e) =>
-                setNewEvent({ ...newEvent, time: e.target.value })
-              }
-              className="w-full p-2 border rounded"
-              placeholder={
-                newEvent.type === "construction"
-                  ? "e.g., 09:00-16:00"
-                  : "e.g., 14:30"
-              }
-            />
-          </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Time</label>
+                <input
+                  type="text"
+                  value={newEvent.time}
+                  onChange={(e) =>
+                    setNewEvent({ ...newEvent, time: e.target.value })
+                  }
+                  className="w-full p-2 border rounded"
+                  placeholder="HH:MM or time range"
+                />
+              </div>
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">
-              Description
-            </label>
-            <textarea
-              value={newEvent.description}
-              onChange={(e) =>
-                setNewEvent({ ...newEvent, description: e.target.value })
-              }
-              className="w-full p-2 border rounded"
-              rows="3"
-              placeholder="Additional details..."
-            />
-          </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={newEvent.description}
+                  onChange={(e) =>
+                    setNewEvent({ ...newEvent, description: e.target.value })
+                  }
+                  className="w-full p-2 border rounded"
+                  rows="3"
+                  placeholder="Enter event description"
+                />
+              </div>
+            </div>
 
-          <div className="flex justify-end gap-2">
-            <button
-              onClick={() => setShowEventForm(false)}
-              className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 transition"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleAddEvent}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-            >
-              Add Event
-            </button>
+            <div className="flex justify-end gap-2 mt-6">
+              <button
+                onClick={() => setShowEventForm(false)}
+                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddEvent}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+              >
+                Add Event
+              </button>
+            </div>
           </div>
         </div>
       )}
