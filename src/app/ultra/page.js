@@ -23,7 +23,8 @@ const Page = () => {
   const [selectedIntersection, setSelectedIntersection] = useState(null);
   const [manualTime, setManualTime] = useState(30);
 
-  const [showCorridorConfirmation, setShowCorridorConfirmation] = useState(false);
+  const [showCorridorConfirmation, setShowCorridorConfirmation] =
+    useState(false);
   const [activeGreenCorridor, setActiveGreenCorridor] = useState(null);
 
   // Bhubaneswar specific events
@@ -73,8 +74,16 @@ const Page = () => {
       position: [20.2961, 85.8245],
       lightTimer: 30,
       cameras: [
-        { id: 1, name: "North View", url: "WhatsApp Video 2025-09-28 at 17.22.16_75a48a5d.mp4" },
-        { id: 2, name: "South View", url: "WhatsApp Video 2025-09-28 at 17.20.53_ff1d9794.mp4" },
+        {
+          id: 1,
+          name: "North View",
+          url: "WhatsApp Video 2025-09-28 at 17.22.16_75a48a5d.mp4",
+        },
+        {
+          id: 2,
+          name: "South View",
+          url: "WhatsApp Video 2025-09-28 at 17.20.53_ff1d9794.mp4",
+        },
       ],
     },
     {
@@ -528,7 +537,25 @@ const Page = () => {
             AI Traffic Alerts
           </h2>
 
-          <div className="h-64 overflow-y-auto pr-2 scrollbar-hide">
+          <div className="absolute top-4 right-4 w-80 space-y-4 z-[10001] h-100 overflow-y-auto pr-2 scrollbar-hide">
+            <div className="p-4 bg-red-50 border-l-4 border-red-500 rounded-lg shadow text-sm text-red-800">
+              <div className="font-bold mb-1">🚨 Accident Alert</div>
+              <p>
+                Collision reported at Master Canteen Square. Right lane blocked.
+              </p>
+              <p>
+                Route diverted to Janpath Road. Expect 20 min delays.
+              </p>
+              <p className="text-xs mt-1 opacity-75">Updated: 14:30</p>
+            </div>
+            <div className="p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded-lg shadow text-sm text-yellow-800">
+              <div className="font-bold mb-1">⚠️ Predicted Accident Alert</div>
+              <p>
+                High risk of accident near Vani Vihar Square due to heavy
+                congestion.
+              </p>
+              <p className="text-xs mt-1 opacity-75">Confidence: 82%</p>
+            </div>
             {intersections.map((intersection) => {
               // Generate alerts for this intersection
               const generateAlerts = (intersection) => {
@@ -637,39 +664,39 @@ const Page = () => {
                 </div>
               ));
             })}
+          </div>
 
-            {/* Summary Stats */}
-            <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
-              <div className="text-xs font-semibold text-blue-800 mb-2">
-                AI Analysis Summary
+          {/* Summary Stats */}
+          <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+            <div className="text-xs font-semibold text-blue-800 mb-2">
+              AI Analysis Summary
+            </div>
+            <div className="space-y-1 text-xs text-blue-700">
+              <div className="flex justify-between">
+                <span>Active Alerts:</span>
+                <span className="font-semibold">
+                  {intersections.reduce((total, intersection) => {
+                    const alerts = [];
+                    if (intersection.congestion === "High")
+                      alerts.push("prediction");
+                    if (
+                      intersection.lightTimer <= 10 &&
+                      intersection.vehicles > 30
+                    )
+                      alerts.push("optimization");
+                    if (intersection.pose && intersection.light === "Green")
+                      alerts.push("safety");
+                    return total + alerts.length;
+                  }, 0)}
+                </span>
               </div>
-              <div className="space-y-1 text-xs text-blue-700">
-                <div className="flex justify-between">
-                  <span>Active Alerts:</span>
-                  <span className="font-semibold">
-                    {intersections.reduce((total, intersection) => {
-                      const alerts = [];
-                      if (intersection.congestion === "High")
-                        alerts.push("prediction");
-                      if (
-                        intersection.lightTimer <= 10 &&
-                        intersection.vehicles > 30
-                      )
-                        alerts.push("optimization");
-                      if (intersection.pose && intersection.light === "Green")
-                        alerts.push("safety");
-                      return total + alerts.length;
-                    }, 0)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Avg Confidence:</span>
-                  <span className="font-semibold">87%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>AI Recommendations:</span>
-                  <span className="font-semibold">12</span>
-                </div>
+              <div className="flex justify-between">
+                <span>Avg Confidence:</span>
+                <span className="font-semibold">87%</span>
+              </div>
+              <div className="flex justify-between">
+                <span>AI Recommendations:</span>
+                <span className="font-semibold">12</span>
               </div>
             </div>
           </div>
@@ -1290,7 +1317,9 @@ const Page = () => {
                 >
                   <option value="emergency">Emergency Vehicle</option>
                   <option value="vip">VIP Movement</option>
-                  <option value="public_transport">Public Transport Priority</option>
+                  <option value="public_transport">
+                    Public Transport Priority
+                  </option>
                   <option value="special_event">Special Event</option>
                 </select>
               </div>
@@ -1307,7 +1336,8 @@ const Page = () => {
                       {greenCorridor.endIntersection.name}
                     </p>
                     <p className="text-sm text-green-700 mt-1">
-                      <strong>Type:</strong> {greenCorridor.type.replace('_', ' ')}
+                      <strong>Type:</strong>{" "}
+                      {greenCorridor.type.replace("_", " ")}
                     </p>
                     <p className="text-sm text-green-700 mt-1">
                       <strong>Estimated Duration:</strong> 3-5 minutes
@@ -1334,15 +1364,15 @@ const Page = () => {
                     ) {
                       setGreenCorridor((prev) => ({ ...prev, isActive: true }));
                       setShowGreenCorridorModal(false);
-                      
+
                       // Show confirmation notification
                       setActiveGreenCorridor({
                         start: greenCorridor.startIntersection.name,
                         end: greenCorridor.endIntersection.name,
-                        type: greenCorridor.type
+                        type: greenCorridor.type,
                       });
                       setShowCorridorConfirmation(true);
-                      
+
                       // Auto hide notification after 5 seconds
                       setTimeout(() => {
                         setShowCorridorConfirmation(false);
@@ -1360,7 +1390,14 @@ const Page = () => {
                           minute: "2-digit",
                         }),
                         status: "active",
-                        description: `${greenCorridor.type.replace('_', ' ')} green corridor established between ${greenCorridor.startIntersection.name} and ${greenCorridor.endIntersection.name}. Traffic lights synchronized for optimal flow.`,
+                        description: `${greenCorridor.type.replace(
+                          "_",
+                          " "
+                        )} green corridor established between ${
+                          greenCorridor.startIntersection.name
+                        } and ${
+                          greenCorridor.endIntersection.name
+                        }. Traffic lights synchronized for optimal flow.`,
                       };
                       setEvents([event, ...events]);
                     }
@@ -1381,7 +1418,7 @@ const Page = () => {
 
       {/* Green Corridor Confirmation Notification */}
       {showCorridorConfirmation && activeGreenCorridor && (
-        <div className="fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-[10002] max-w-sm">
+        <div className="fixed top-4 right-140 bg-green-500 text-white p-4 rounded-lg shadow-lg z-[10002] max-w-sm">
           <div className="flex items-start">
             <div className="flex-shrink-0">
               <svg
@@ -1400,12 +1437,16 @@ const Page = () => {
               </svg>
             </div>
             <div className="ml-3">
-              <h3 className="text-lg font-semibold">Green Corridor Activated</h3>
+              <h3 className="text-lg font-semibold">
+                Green Corridor Activated
+              </h3>
               <p className="mt-1">
-                Route: <strong>{activeGreenCorridor.start}</strong> to <strong>{activeGreenCorridor.end}</strong>
+                Route: <strong>{activeGreenCorridor.start}</strong> to{" "}
+                <strong>{activeGreenCorridor.end}</strong>
               </p>
               <p className="text-sm mt-1">
-                Type: <strong>{activeGreenCorridor.type.replace('_', ' ')}</strong>
+                Type:{" "}
+                <strong>{activeGreenCorridor.type.replace("_", " ")}</strong>
               </p>
               <p className="text-sm mt-1 opacity-90">
                 Traffic signals will be optimized for this corridor.
