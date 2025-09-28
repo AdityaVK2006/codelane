@@ -529,6 +529,13 @@ const Page = () => {
             <span>🚦</span>
             <span>Create Green Corridor</span>
           </button>
+          <button
+            onClick={() => (window.location.href = "/analytics")}
+            className="flex items-center space-x-3 py-2 px-3 text-left rounded-lg bg-green-100 text-green-600 font-semibold"
+          >
+            <span className="text-lg">📊</span>
+            <span className="font-medium">Analytics</span>
+          </button>
         </section>
 
         {/* AI Traffic Alerts Section */}
@@ -537,15 +544,13 @@ const Page = () => {
             AI Traffic Alerts
           </h2>
 
-          <div className="absolute top-4 right-4 w-80 space-y-4 z-[10001] h-100 overflow-y-auto pr-2 scrollbar-hide">
+          <div className="absolute top-4 right-4 w-80 space-y-4 z-[1000] h-100 overflow-y-auto pr-2 scrollbar-hide">
             <div className="p-4 bg-red-50 border-l-4 border-red-500 rounded-lg shadow text-sm text-red-800">
               <div className="font-bold mb-1">🚨 Accident Alert</div>
               <p>
                 Collision reported at Master Canteen Square. Right lane blocked.
               </p>
-              <p>
-                Route diverted to Janpath Road. Expect 20 min delays.
-              </p>
+              <p>Route diverted to Janpath Road. Expect 20 min delays.</p>
               <p className="text-xs mt-1 opacity-75">Updated: 14:30</p>
             </div>
             <div className="p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded-lg shadow text-sm text-yellow-800">
